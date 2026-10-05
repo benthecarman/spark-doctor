@@ -33,6 +33,19 @@ python3Packages.buildPythonApplication {
 
   pythonImportsCheck = [ "spark_doctor" ];
 
+  # Keep the caller's PATH and Python environment for workload probes.
+  # Dependencies are added to the CLI's own sys.path instead of its environment.
+  dontWrapPythonPrograms = true;
+  postFixup = ''
+    buildPythonPath "$out ''${pythonPath[*]}"
+    patchPythonScript "$out/bin/spark-doctor"
+    sed -i '1s/$/ -s/' "$out/bin/spark-doctor"
+  '';
+
+  postCheck = ''
+    ${python3Packages.python}/bin/python3 ${./check-host-python.py} "$out/bin/spark-doctor"
+  '';
+
   # The collectors shell out to nvidia-smi, docker, journalctl and friends.
   # Those come from the host on purpose rather than being wrapped into PATH:
   # the tool diagnoses the system's own driver and runtime, and a pinned
